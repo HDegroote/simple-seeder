@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const heapdump = require('heapdump') // eslint-disable-line
+const repl = require('repl-swarm')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
 const HypercoreId = require('hypercore-id-encoding')
@@ -11,6 +13,9 @@ const DHT = require('hyperdht')
 const debounceify = require('debounceify')
 const load = require('./lib/load.js')
 const SimpleSeeder = require('./lib/simple-seeder.js')
+const setupMetricsServer = require('./lib/metrics')
+
+const metricsPort = 13520
 
 const argv = minimist(process.argv.slice(2), {
   alias: {
@@ -44,6 +49,8 @@ async function main () {
   })
   swarm.on('connection', onsocket)
   swarm.listen()
+
+  await setupMetricsServer({ port: metricsPort })
   goodbye(() => swarm.destroy(), 1)
 
   if (argv.menu) {
@@ -57,6 +64,7 @@ async function main () {
   const seeds = await load(argv)
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
+  repl({ tracker })
   goodbye(() => tracker.destroy())
 
   for (const { key, type } of seeds) {
@@ -85,7 +93,7 @@ function ui () {
   const flush = () => {
     if (output === stdout) return
     stdout = output
-    if (!quiet) console.clear()
+    // if (!quiet) console.clear()
     process.stdout.write(output)
   }
 
@@ -98,6 +106,11 @@ function ui () {
 
   const totalConnections = swarm.connections.size + seeders.reduce((acc, r) => acc + r.seeders.connections.length, 0)
   const totalConnecting = swarm.connecting + seeders.reduce((acc, r) => acc + r.seeders.clientConnecting, 0)
+
+  if (process.pid) {
+    console.log('For a snapshot, run:')
+    console.log(`kill -USR2 ${process.pid}`)
+  }
 
   if (quiet) {
     print('Swarm connections:', crayon.yellow(totalConnections), totalConnecting ? ('(connecting ' + crayon.yellow(totalConnecting) + ')') : '')
