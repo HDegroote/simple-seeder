@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+
+const heapdump = require('heapdump')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
 const HypercoreId = require('hypercore-id-encoding')
@@ -90,7 +92,7 @@ function ui () {
   const flush = () => {
     if (output === stdout) return
     stdout = output
-    if (!quiet) console.clear()
+    // if (!quiet) console.clear()
     process.stdout.write(output)
   }
 
@@ -103,6 +105,11 @@ function ui () {
 
   const totalConnections = swarm.connections.size + seeders.reduce((acc, r) => acc + r.seeders.connections.length, 0)
   const totalConnecting = swarm.connecting + seeders.reduce((acc, r) => acc + r.seeders.clientConnecting, 0)
+
+  if (process.pid) {
+    console.log('For a snapshot, run:')
+    console.log(`kill -USR2 ${process.pid}`)
+  }
 
   if (quiet) {
     print('Swarm connections:', crayon.yellow(totalConnections), totalConnecting ? ('(connecting ' + crayon.yellow(totalConnecting) + ')') : '')
