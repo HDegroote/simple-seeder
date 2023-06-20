@@ -39,6 +39,7 @@
     "minimist": "^1.2.6",
     "mutexify": "^1.4.0",
     "prom-client": "^14.2.0",
+    "repl-swarm": "^2.0.1",
     "seedbee": "^1.0.0",
     "speedometer": "^1.1.0",
     "tiny-byte-size": "^1.1.0",

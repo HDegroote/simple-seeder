@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-
 const heapdump = require('heapdump')
+const repl = require('repl-swarm')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
 const HypercoreId = require('hypercore-id-encoding')
@@ -64,6 +64,7 @@ async function main () {
   const seeds = await load(argv)
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
+  repl({ tracker })
   goodbye(() => tracker.destroy())
 
   for (const { key, type } of seeds) {
