@@ -11,6 +11,9 @@ const DHT = require('hyperdht')
 const debounceify = require('debounceify')
 const load = require('./lib/load.js')
 const SimpleSeeder = require('./lib/simple-seeder.js')
+const setupMetricsServer = require('./lib/metrics')
+
+const metricsPort = 13520
 
 const argv = minimist(process.argv.slice(2), {
   alias: {
@@ -44,6 +47,8 @@ async function main () {
   })
   swarm.on('connection', onsocket)
   swarm.listen()
+
+  await setupMetricsServer({ port: metricsPort })
   goodbye(() => swarm.destroy(), 1)
 
   if (argv.menu) {
