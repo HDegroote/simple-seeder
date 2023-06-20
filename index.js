@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const heapdump = require('heapdump')
+const heapdump = require('heapdump') // eslint-disable-line
 const repl = require('repl-swarm')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
