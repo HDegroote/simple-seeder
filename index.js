@@ -66,7 +66,6 @@ async function main () {
   const seeds = await load(argv)
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
-  repl({ tracker })
   const replSeed = repl({ tracker })
   const oneHour = 1000 * 60 * 60
   setInterval(() => {
