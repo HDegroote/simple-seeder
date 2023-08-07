@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
-const heapdump = require('heapdump') // eslint-disable-line
+// Requires running 'node-gyp configure build'
+// const heapdump = require('heapdump') // eslint-disable-line
+
 const repl = require('repl-swarm')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
@@ -65,6 +67,12 @@ async function main () {
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
   repl({ tracker })
+  const replSeed = repl({ tracker })
+  const oneHour = 1000 * 60 * 60
+  setInterval(() => {
+    console.log('Repl seed:', replSeed)
+  }, oneHour)
+
   goodbye(() => tracker.destroy())
 
   for (const { key, type } of seeds) {
@@ -106,11 +114,6 @@ function ui () {
 
   const totalConnections = swarm.connections.size + seeders.reduce((acc, r) => acc + r.seeders.connections.length, 0)
   const totalConnecting = swarm.connecting + seeders.reduce((acc, r) => acc + r.seeders.clientConnecting, 0)
-
-  if (process.pid) {
-    console.log('For a snapshot, run:')
-    console.log(`kill -USR2 ${process.pid}`)
-  }
 
   if (quiet) {
     print('Swarm connections:', crayon.yellow(totalConnections), totalConnecting ? ('(connecting ' + crayon.yellow(totalConnecting) + ')') : '')
