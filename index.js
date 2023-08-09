@@ -55,7 +55,7 @@ async function main () {
   })
   swarm.on('connection', onsocket)
 
-  const server = fastify({ logger: true })
+  const server = fastify({ logger: false })
   const instrumentedSwarm = new InstrumentedSwarm(swarm, { server, launchRepl })
   await setupMetricsEndpoint(instrumentedSwarm, { server })
   await server.listen({ host: '127.0.0.1', port: instrumentationPort })

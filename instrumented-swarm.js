@@ -39,8 +39,12 @@ function addEndpoints (instrumentedSwarm, server) {
   })
 
   server.get('/swarm/repl', async function (req, reply) {
-    const seed = instrumentedSwarm.replSeed || 'No repl exposed by the swarm'
-    reply.send(seed)
+    if (instrumentedSwarm.replSeed) {
+      console.log(`REPL seed: ${instrumentedSwarm.replSeed}`)
+      reply.send('Repl seed logged')
+    } else {
+      reply.send('No repl exposed by the swarm')
+    }
   })
 
   return server
