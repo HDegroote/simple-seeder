@@ -53,6 +53,12 @@ async function main () {
     dht: new DHT({ port: dhtPort })
   })
   swarm.on('connection', onsocket)
+
+  const server = fastify({ logger: true })
+  const instrumentedSwarm = new InstrumentedSwarm(swarm, { server })
+  await setupMetricsEndpoint(instrumentedSwarm, { server })
+  await server.listen({ host: '127.0.0.1', port: instrumentationPort })
+
   swarm.listen()
 
   goodbye(() => swarm.destroy(), 1)
@@ -66,13 +72,6 @@ async function main () {
   }
 
   const seeds = await load(argv)
-
-  const server = fastify({ logger: true })
-
-  const instrumentedSwarm = new InstrumentedSwarm(swarm, { server })
-  await setupMetricsEndpoint(instrumentedSwarm, { server })
-
-  await server.listen({ host: '127.0.0.1', port: instrumentationPort })
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
   const replSeed = repl({ tracker })
