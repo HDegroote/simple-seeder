@@ -1,5 +1,6 @@
 const b4a = require('b4a')
 const { id: getDhtId } = require('dht-rpc/lib/peer.js')
+const repl = require('repl-swarm')
 
 function addEndpoints (instrumentedSwarm, server) {
   server.get('/swarm/peerinfo', async function (req, reply) {
@@ -37,10 +38,15 @@ function addEndpoints (instrumentedSwarm, server) {
     reply.send(Object.fromEntries(instrumentedSwarm.getMetrics()))
   })
 
+  server.get('/swarm/repl', async function (req, reply) {
+    const seed = instrumentedSwarm.replSeed || 'No repl exposed by the swarm'
+    reply.send(seed)
+  })
+
   return server
 }
 class InstrumentedSwarm {
-  constructor (swarm, { server } = {}) {
+  constructor (swarm, { server, launchRepl = false } = {}) {
     this.swarmConnectionsOpened = 0
     this.swarmConnectionsClosed = 0
 
@@ -49,6 +55,8 @@ class InstrumentedSwarm {
       this.swarmConnectionsOpened++
       conn.on('close', () => this.swarmConnectionsClosed++)
     })
+
+    this.replSeed = launchRepl ? repl({ swarm }) : null
 
     this.server = server ? addEndpoints(this, server) : null
   }

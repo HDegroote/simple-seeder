@@ -3,7 +3,6 @@
 // Requires running 'node-gyp configure build'
 // const heapdump = require('heapdump') // eslint-disable-line
 
-const repl = require('repl-swarm')
 const Corestore = require('corestore')
 const Hyperswarm = require('hyperswarm')
 const HypercoreId = require('hypercore-id-encoding')
@@ -25,12 +24,14 @@ const argv = minimist(process.argv.slice(2), {
     bee: 'b',
     drive: 'd',
     seeders: 's',
-    'instrumentation-port': 'i'
+    'instrumentation-port': 'i',
+    repl: 'r'
   }
 })
 
 const instrumentationPort = argv['instrumentation-port']
 const dhtPort = argv.port
+const launchRepl = !!argv.repl
 const secretKey = argv['secret-key']
 const store = new Corestore(argv.storage || './corestore')
 
@@ -55,7 +56,7 @@ async function main () {
   swarm.on('connection', onsocket)
 
   const server = fastify({ logger: true })
-  const instrumentedSwarm = new InstrumentedSwarm(swarm, { server })
+  const instrumentedSwarm = new InstrumentedSwarm(swarm, { server, launchRepl })
   await setupMetricsEndpoint(instrumentedSwarm, { server })
   await server.listen({ host: '127.0.0.1', port: instrumentationPort })
 
@@ -74,12 +75,6 @@ async function main () {
   const seeds = await load(argv)
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
-  const replSeed = repl({ tracker })
-  const oneHour = 1000 * 60 * 60
-  setInterval(() => {
-    console.log('Repl seed:', replSeed)
-  }, oneHour)
-
   goodbye(() => tracker.destroy())
 
   for (const { key, type } of seeds) {
