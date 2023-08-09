@@ -25,11 +25,12 @@ const argv = minimist(process.argv.slice(2), {
     bee: 'b',
     drive: 'd',
     seeders: 's',
-    port: 'p'
+    'instrumentation-port': 'i'
   }
 })
 
-const instrumentationPort = argv.port
+const instrumentationPort = argv['instrumentation-port']
+const dhtPort = argv.port
 const secretKey = argv['secret-key']
 const store = new Corestore(argv.storage || './corestore')
 
@@ -49,7 +50,7 @@ async function main () {
   swarm = new Hyperswarm({
     seed: secretKey ? HypercoreId.decode(secretKey) : undefined,
     keyPair: secretKey ? undefined : await store.createKeyPair('simple-seeder-swarm'),
-    dht: new DHT({ port: argv.port })
+    dht: new DHT({ port: dhtPort })
   })
   swarm.on('connection', onsocket)
   swarm.listen()
