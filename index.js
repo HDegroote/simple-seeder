@@ -15,19 +15,21 @@ const DHT = require('hyperdht')
 const debounceify = require('debounceify')
 const load = require('./lib/load.js')
 const SimpleSeeder = require('./lib/simple-seeder.js')
-const setupMetricsServer = require('./lib/metrics')
-
-const metricsPort = 13520
+const setupMetricsEndpoint = require('./lib/metrics')
+const InstrumentedSwarm = require('./swarm-metrics.js')
+const fastify = require('fastify')
 
 const argv = minimist(process.argv.slice(2), {
   alias: {
     core: 'c',
     bee: 'b',
     drive: 'd',
-    seeders: 's'
+    seeders: 's',
+    port: 'p'
   }
 })
 
+const instrumentationPort = argv.port
 const secretKey = argv['secret-key']
 const store = new Corestore(argv.storage || './corestore')
 
@@ -52,7 +54,6 @@ async function main () {
   swarm.on('connection', onsocket)
   swarm.listen()
 
-  await setupMetricsServer({ port: metricsPort })
   goodbye(() => swarm.destroy(), 1)
 
   if (argv.menu) {
@@ -64,6 +65,13 @@ async function main () {
   }
 
   const seeds = await load(argv)
+
+  const server = fastify({ logger: true })
+
+  const instrumentedSwarm = new InstrumentedSwarm(swarm, { server })
+  await setupMetricsEndpoint(instrumentedSwarm, { server })
+
+  await server.listen({ host: '127.0.0.1', port: instrumentationPort })
 
   tracker = new SimpleSeeder(store, swarm, { backup: argv.backup, onupdate: ui })
   const replSeed = repl({ tracker })

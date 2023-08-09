@@ -1,12 +1,7 @@
 const b4a = require('b4a')
 const { id: getDhtId } = require('dht-rpc/lib/peer.js')
-const fastify = require('fastify')
-const ReadyResource = require('ready-resource')
-const safetyCatch = require('safety-catch')
 
-function setupServer (instrumentedSwarm) {
-  const server = fastify()
-
+function addEndpoints (instrumentedSwarm, server) {
   server.get('/swarm/peerinfo', async function (req, reply) {
     const { port, host } = req.query
 
@@ -44,34 +39,22 @@ function setupServer (instrumentedSwarm) {
 
   return server
 }
-class InstrumentedSwarm extends ReadyResource {
-  constructor (swarm, { host, port } = {}) {
-    super()
-
-    this.connectionsOpened = 0
-    this.connectionsClosed = 0
+class InstrumentedSwarm {
+  constructor (swarm, { server } = {}) {
+    this.swarmConnectionsOpened = 0
+    this.swarmConnectionsClosed = 0
 
     this.swarm = swarm
     this.swarm.on('connection', conn => {
-      this.connectionsOpened++
-      conn.on('close', () => this.connectionsClosed++)
+      this.swarmConnectionsOpened++
+      conn.on('close', () => this.swarmConnectionsClosed++)
     })
 
-    this.server = setupServer(this)
-    this._appListeningProm = this.server.listen({ port, host })
-    this._appListeningProm.catch(safetyCatch)
-  }
-
-  async _open () {
-    await this._appListeningProm
-  }
-
-  async _close () {
-    await this.server.close()
+    this.server = server ? addEndpoints(this, server) : null
   }
 
   get serverPort () {
-    return this.server.addresses()[0].port
+    return this.server?.addresses()[0].port
   }
 
   get publicKey () {
@@ -162,8 +145,8 @@ class InstrumentedSwarm extends ReadyResource {
     res.set('nrSwarmHosts', (new Set(infoArray.map(i => i.remoteHost))).size)
     res.set('nrDhtPeers', dhtNodes.size)
     res.set('nrDhtHosts', (new Set(dhtNodesArray.map(n => n.host))).size)
-    res.set('connectionsOpened', this.connectionsOpened)
-    res.set('connectionsClosed', this.connectionsClosed)
+    res.set('swarmConnectionsOpened', this.swarmConnectionsOpened)
+    res.set('swarmConnectionsClosed', this.swarmConnectionsClosed)
 
     // I think this will always be 2 anyway, 1 client and 1 server socket
     // res.set('nrSocketsUsed', (new Set([

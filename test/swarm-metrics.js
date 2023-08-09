@@ -6,6 +6,7 @@ const createTestnet = require('hyperdht/testnet')
 const axios = require('axios')
 
 const InstrumentedSwarm = require('../swarm-metrics')
+const fastify = require('fastify')
 
 async function setup (t, testnetSize = 3) {
   const testnet = await createTestnet(testnetSize)
@@ -46,13 +47,17 @@ async function setup (t, testnetSize = 3) {
   await swarm3.flush()
 
   const host = '127.0.0.1'
-  const iSwarm1 = new InstrumentedSwarm(swarm1, { host })
-  const iSwarm2 = new InstrumentedSwarm(swarm2, { host })
-  const iSwarm3 = new InstrumentedSwarm(swarm3, { host })
-  await Promise.all([iSwarm1.ready(), iSwarm2.ready(), iSwarm3.ready()])
+  const iSwarm1 = new InstrumentedSwarm(swarm1, { server: fastify() })
+  const iSwarm2 = new InstrumentedSwarm(swarm2, { server: fastify() })
+  const iSwarm3 = new InstrumentedSwarm(swarm3, { server: fastify() })
+  await Promise.all([
+    iSwarm1.server.listen({ host, port: undefined }),
+    iSwarm2.server.listen({ host, port: undefined }),
+    iSwarm3.server.listen({ host, port: undefined })
+  ])
 
   t.teardown(async () => {
-    await Promise.all([iSwarm1.close(), iSwarm2.close(), iSwarm3.close()])
+    await Promise.all([iSwarm1.server.close(), iSwarm2.server.close(), iSwarm3.server.close()])
     await Promise.all([swarm1.destroy(), swarm2.destroy(), swarm3.destroy()])
     await Promise.all([store1.close(), store2.close(), store3.close()])
     await testnet.destroy()
@@ -83,8 +88,6 @@ test('instrumented swarm - props', async function (t) {
   t.is(pInfo1.pubKey, iSwarm3.ownKey)
   t.is(pInfo1.ownPort, pInfo3.remotePort)
   t.is(pInfo1.remotePort, pInfo3.ownPort)
-
-  await Promise.all([iSwarm1.close(), iSwarm3.close()])
 })
 
 test('instrumented swarm - metrics', async function (t) {
@@ -195,8 +198,8 @@ test('get summary endpoint', async function (t) {
   t.is(res.data.nrSwarmHosts, 1)
   t.is(res.data.nrDhtPeers, testnetSize - 1)
   t.is(res.data.nrDhtHosts, 1)
-  t.is(res.data.connectionsOpened, 0)
-  t.is(res.data.connectionsClosed, 0)
+  t.is(res.data.swarmConnectionsOpened, 0)
+  t.is(res.data.swarmConnectionsClosed, 0)
 
   iSwarm1.swarm.join(core2.discoveryKey)
   await iSwarm1.swarm.flush()
@@ -205,8 +208,8 @@ test('get summary endpoint', async function (t) {
   const url1 = `http://127.0.0.1:${iSwarm1.serverPort}/swarm`
   const res2 = await axios.get(`${url1}/summary`)
 
-  t.is(res2.data.connectionsOpened, 1)
-  t.is(res2.data.connectionsClosed, 0)
+  t.is(res2.data.swarmConnectionsOpened, 1)
+  t.is(res2.data.swarmConnectionsClosed, 0)
 })
 
 async function eventFlush () {
