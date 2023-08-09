@@ -29,6 +29,7 @@
     "corestore": "^6.8.3",
     "debounceify": "^1.0.0",
     "express": "^4.18.2",
+    "fastify": "^4.21.0",
     "graceful-goodbye": "^1.0.0",
     "heapdump": "^0.3.15",
     "hyperbee": "^2.12.0",
@@ -39,6 +40,7 @@
     "minimist": "^1.2.6",
     "mutexify": "^1.4.0",
     "prom-client": "^14.2.0",
+    "ready-resource": "^1.0.0",
     "repl-swarm": "^2.0.1",
     "seedbee": "^1.0.0",
     "speedometer": "^1.1.0",
@@ -48,6 +50,7 @@
     "tiny-menu": "^1.1.0"
   },
   "devDependencies": {
+    "axios": "^1.4.0",
     "b4a": "^1.6.4",
     "brittle": "^3.3.2",
     "random-access-memory": "^6.2.0",
