@@ -7,7 +7,7 @@ const safetyCatch = require('safety-catch')
 function setupServer (instrumentedSwarm) {
   const server = fastify()
 
-  server.get('/peerinfo', async function (req, reply) {
+  server.get('/swarm/peerinfo', async function (req, reply) {
     const { port, host } = req.query
 
     const res = []
@@ -19,7 +19,7 @@ function setupServer (instrumentedSwarm) {
     reply.send(res)
   })
 
-  server.get('/peerinfo/:publicKey', async function (req, reply) {
+  server.get('/swarm/peerinfo/:publicKey', async function (req, reply) {
     const { publicKey } = req.params
 
     const info = instrumentedSwarm.peerInfos.get(publicKey)
@@ -30,12 +30,16 @@ function setupServer (instrumentedSwarm) {
     }
   })
 
-  server.get('/dhtnode', async function (req, reply) {
+  server.get('/swarm/dhtnode', async function (req, reply) {
     const res = []
     for (const entry of instrumentedSwarm.dhtNodes.values()) {
       res.push(entry)
     }
     reply.send(res)
+  })
+
+  server.get('/swarm/summary', async function (req, reply) {
+    reply.send(Object.fromEntries(instrumentedSwarm.getMetrics()))
   })
 
   return server
@@ -44,7 +48,15 @@ class InstrumentedSwarm extends ReadyResource {
   constructor (swarm, { host, port } = {}) {
     super()
 
+    this.connectionsOpened = 0
+    this.connectionsClosed = 0
+
     this.swarm = swarm
+    this.swarm.on('connection', conn => {
+      this.connectionsOpened++
+      conn.on('close', () => this.connectionsClosed++)
+    })
+
     this.server = setupServer(this)
     this._appListeningProm = this.server.listen({ port, host })
     this._appListeningProm.catch(safetyCatch)
@@ -150,6 +162,8 @@ class InstrumentedSwarm extends ReadyResource {
     res.set('nrSwarmHosts', (new Set(infoArray.map(i => i.remoteHost))).size)
     res.set('nrDhtPeers', dhtNodes.size)
     res.set('nrDhtHosts', (new Set(dhtNodesArray.map(n => n.host))).size)
+    res.set('connectionsOpened', this.connectionsOpened)
+    res.set('connectionsClosed', this.connectionsClosed)
 
     // I think this will always be 2 anyway, 1 client and 1 server socket
     // res.set('nrSocketsUsed', (new Set([

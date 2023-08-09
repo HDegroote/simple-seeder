@@ -58,11 +58,11 @@ async function setup (t, testnetSize = 3) {
     await testnet.destroy()
   })
 
-  return [iSwarm1, iSwarm2, iSwarm3]
+  return { iSwarm1, iSwarm2, iSwarm3, core1, core2 }
 }
 
 test('instrumented swarm - props', async function (t) {
-  const [iSwarm1, , iSwarm3] = await setup(t)
+  const { iSwarm1, iSwarm3 } = await setup(t)
   const swarm1 = iSwarm1.swarm
 
   t.is(iSwarm1.dhtHost, swarm1.dht.host)
@@ -89,7 +89,7 @@ test('instrumented swarm - props', async function (t) {
 
 test('instrumented swarm - metrics', async function (t) {
   const testnetSize = 5
-  const [iSwarm1, iSwarm2, iSwarm3] = await setup(t, testnetSize)
+  const { iSwarm1, iSwarm2, iSwarm3 } = await setup(t, testnetSize)
 
   const metrics1 = Object.fromEntries(iSwarm1.getMetrics())
   const metrics2 = Object.fromEntries(iSwarm2.getMetrics())
@@ -105,9 +105,9 @@ test('instrumented swarm - metrics', async function (t) {
 })
 
 test('get /peerInfo endpoint', async function (t) {
-  const [iSwarm1, iSwarm2, iSwarm3] = await setup(t)
+  const { iSwarm1, iSwarm2, iSwarm3 } = await setup(t)
 
-  const url = `http://127.0.0.1:${iSwarm3.serverPort}`
+  const url = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
 
   const res = await axios.get(`${url}/peerinfo`)
   t.is(res.status, 200)
@@ -120,8 +120,8 @@ test('get /peerInfo endpoint', async function (t) {
 })
 
 test('get /peerInfo endpoint with port query param', async function (t) {
-  const [iSwarm1, , iSwarm3] = await setup(t)
-  const url = `http://127.0.0.1:${iSwarm3.serverPort}`
+  const { iSwarm1, iSwarm3 } = await setup(t)
+  const url = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
 
   const res = await axios.get(`${url}/peerinfo`, { params: { port: iSwarm1.connectionPort } })
   t.is(res.status, 200)
@@ -130,8 +130,8 @@ test('get /peerInfo endpoint with port query param', async function (t) {
 })
 
 test('get /peerInfo endpoint with port and host query params', async function (t) {
-  const [iSwarm1, , iSwarm3] = await setup(t)
-  const url = `http://127.0.0.1:${iSwarm3.serverPort}`
+  const { iSwarm1, iSwarm3 } = await setup(t)
+  const url = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
 
   // All nodes are on the same host, so this test
   // is not testing the host-filter logic.
@@ -155,30 +155,60 @@ test('get /peerInfo endpoint with port and host query params', async function (t
 })
 
 test('get /peerInfo/:pubkey endpoint happy path', async function (t) {
-  const [iSwarm1, , iSwarm3] = await setup(t)
+  const { iSwarm1, iSwarm3 } = await setup(t)
 
-  const url = `http://127.0.0.1:${iSwarm3.serverPort}`
+  const url = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
   const res = await axios.get(`${url}/peerinfo/${iSwarm1.publicKey}`)
   t.is(res.status, 200)
   t.is(res.data.publicKey, iSwarm1.publicKey)
 })
 
 test('get /peerInfo/:pubkey endpoint 404 if not found', async function (t) {
-  const [, , iSwarm3] = await setup(t)
+  const { iSwarm3 } = await setup(t)
 
-  const url = `http://127.0.0.1:${iSwarm3.serverPort}`
+  const url = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
   const res = await axios.get(`${url}/peerinfo/${'a'.repeat(64)}`, { validateStatus: false })
   t.is(res.status, 404)
 })
 
 test('get dhtnode endpoint', async function (t) {
   const testnetSize = 5
-  const [iSwarm1] = await setup(t, testnetSize)
+  const { iSwarm1 } = await setup(t, testnetSize)
 
-  const url = `http://127.0.0.1:${iSwarm1.serverPort}`
+  const url = `http://127.0.0.1:${iSwarm1.serverPort}/swarm`
   const res = await axios.get(`${url}/dhtnode`)
 
   t.is(res.status, 200)
   t.is(res.data.length, 4, '5 testnetnodes minus the bootstrap')
   t.is(res.data[0].id.length, 64, 'sanity check that structure is as expected')
 })
+
+test('get summary endpoint', async function (t) {
+  const testnetSize = 5
+  const { iSwarm1, iSwarm3, core2 } = await setup(t, testnetSize)
+
+  const url3 = `http://127.0.0.1:${iSwarm3.serverPort}/swarm`
+  const res = await axios.get(`${url3}/summary`)
+
+  t.is(res.status, 200)
+  t.is(res.data.nrSwarmPeers, 2)
+  t.is(res.data.nrSwarmHosts, 1)
+  t.is(res.data.nrDhtPeers, testnetSize - 1)
+  t.is(res.data.nrDhtHosts, 1)
+  t.is(res.data.connectionsOpened, 0)
+  t.is(res.data.connectionsClosed, 0)
+
+  iSwarm1.swarm.join(core2.discoveryKey)
+  await iSwarm1.swarm.flush()
+  await eventFlush() // Unsure if needed
+
+  const url1 = `http://127.0.0.1:${iSwarm1.serverPort}/swarm`
+  const res2 = await axios.get(`${url1}/summary`)
+
+  t.is(res2.data.connectionsOpened, 1)
+  t.is(res2.data.connectionsClosed, 0)
+})
+
+async function eventFlush () {
+  await new Promise(resolve => setImmediate(resolve))
+}
