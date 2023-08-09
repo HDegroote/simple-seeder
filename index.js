@@ -15,7 +15,7 @@ const debounceify = require('debounceify')
 const load = require('./lib/load.js')
 const SimpleSeeder = require('./lib/simple-seeder.js')
 const setupMetricsEndpoint = require('./lib/metrics')
-const InstrumentedSwarm = require('./swarm-metrics.js')
+const InstrumentedSwarm = require('./instrumented-swarm.js')
 const fastify = require('fastify')
 
 const argv = minimist(process.argv.slice(2), {

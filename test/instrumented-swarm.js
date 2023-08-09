@@ -5,7 +5,7 @@ const Hyperswarm = require('hyperswarm')
 const createTestnet = require('hyperdht/testnet')
 const axios = require('axios')
 
-const InstrumentedSwarm = require('../swarm-metrics')
+const InstrumentedSwarm = require('../instrumented-swarm')
 const fastify = require('fastify')
 
 async function setup (t, testnetSize = 3) {
