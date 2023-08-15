@@ -26,7 +26,7 @@ function addEndpoints (instrumentedSwarm, server) {
     }
   })
 
-  server.get('/swarm/dhtnode', async function (req, reply) {
+  server.get('/dht/peer', async function (req, reply) {
     const res = []
     for (const entry of instrumentedSwarm.dhtNodes.values()) {
       res.push(entry)

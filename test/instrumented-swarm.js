@@ -178,8 +178,8 @@ test('get dhtnode endpoint', async function (t) {
   const testnetSize = 5
   const { iSwarm1 } = await setup(t, testnetSize)
 
-  const url = `http://127.0.0.1:${iSwarm1.serverPort}/swarm`
-  const res = await axios.get(`${url}/dhtnode`)
+  const url = `http://127.0.0.1:${iSwarm1.serverPort}/dht`
+  const res = await axios.get(`${url}/peer`)
 
   t.is(res.status, 200)
   t.is(res.data.length, 4, '5 testnetnodes minus the bootstrap')
@@ -210,6 +210,15 @@ test('get summary endpoint', async function (t) {
 
   t.is(res2.data.swarmConnectionsOpened, 1)
   t.is(res2.data.swarmConnectionsClosed, 0)
+})
+
+test('Instrumented swarm without server', async function (t) {
+  const { iSwarm1 } = await setup(t)
+
+  const iSwarm = new InstrumentedSwarm(iSwarm1.swarm)
+  t.is(iSwarm.server, null)
+  t.is(iSwarm.serverPort, undefined)
+  t.is(iSwarm.peers.size, 1, 'sanity check')
 })
 
 async function eventFlush () {
