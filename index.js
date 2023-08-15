@@ -15,7 +15,7 @@ const debounceify = require('debounceify')
 const load = require('./lib/load.js')
 const SimpleSeeder = require('./lib/simple-seeder.js')
 const setupMetricsEndpoint = require('./lib/metrics')
-const InstrumentedSwarm = require('./instrumented-swarm.js')
+const InstrumentedSwarm = require('instrumented-swarm')
 const fastify = require('fastify')
 
 const argv = minimist(process.argv.slice(2), {
@@ -25,11 +25,14 @@ const argv = minimist(process.argv.slice(2), {
     drive: 'd',
     seeders: 's',
     'instrumentation-port': 'i',
+    'instrumention-host': 'h',
     repl: 'r'
   }
 })
 
 const instrumentationPort = argv['instrumentation-port']
+const instrumentationHost = argv['instrumentation-host'] || '127.0.0.1'
+
 const dhtPort = argv.port
 const launchRepl = !!argv.repl
 const secretKey = argv['secret-key']
@@ -55,10 +58,11 @@ async function main () {
   })
   swarm.on('connection', onsocket)
 
+  // TODO: expose host option
   const server = fastify({ logger: false })
   const instrumentedSwarm = new InstrumentedSwarm(swarm, { server, launchRepl })
   await setupMetricsEndpoint(instrumentedSwarm, { server })
-  await server.listen({ host: '127.0.0.1', port: instrumentationPort })
+  await server.listen({ host: instrumentationHost, port: instrumentationPort })
 
   swarm.listen()
 

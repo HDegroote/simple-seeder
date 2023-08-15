@@ -37,6 +37,7 @@
     "hyperdht": "^6.5.3",
     "hyperdrive": "^11.1.3",
     "hyperswarm": "^4.0.0",
+    "instrumented-swarm": "^0.0.1-alpha.0",
     "minimist": "^1.2.6",
     "mutexify": "^1.4.0",
     "prom-client": "^14.2.0",
