@@ -63,7 +63,7 @@ async function main () {
   const instrumentedSwarm = new InstrumentedSwarm(swarm, { server, launchRepl })
   await setupMetricsEndpoint(instrumentedSwarm, { server })
   await server.listen({ host: instrumentationHost, port: instrumentationPort })
-
+  console.log('server address:', server.addresses())
   swarm.listen()
 
   goodbye(() => swarm.destroy(), 1)
